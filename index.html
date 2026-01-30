@@ -29,7 +29,9 @@
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
         
         tailwind.config = {
             theme: {
@@ -39,20 +41,22 @@
                         brandHover: '#143d28',
                         brandLight: '#e8f5e9',
                         
-                        // Icon Colors for UI
+                        // Icon Colors
                         icoPdf: '#e53e3e',
                         icoWord: '#2b579a',
                         icoExcel: '#217346',
                         icoPpt: '#d24726',
                         icoImg: '#f6b93b',
                         icoSec: '#4a5568',
-                        icoEdit: '#9f7aea',
+                        icoEdit: '#6b7280', // Neutral gray for edit tools
                     },
                     fontFamily: {
                         sans: ['"Noto Sans JP"', 'sans-serif'],
                     },
                     boxShadow: {
-                        'soft': '0 4px 20px 0 rgba(0,0,0,0.05)',
+                        'soft': '0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03)',
+                        'hover': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+                        'mega': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                     }
                 }
             }
@@ -60,35 +64,38 @@
     </script>
 
     <style>
-        body { background-color: #f8fafc; color: #333; }
+        body { background-color: #f7f9fa; color: #333; }
         
-        /* Mega Menu Logic */
-        .group:hover .mega-menu {
+        /* MEGA MENU STYLES */
+        .nav-item-static { position: static !important; }
+        
+        .group:hover .mega-menu-container {
             opacity: 1;
             visibility: visible;
-            transform: translate(-50%, 0);
+            transform: translateY(0);
+            pointer-events: auto;
         }
-        .mega-menu {
+        
+        .mega-menu-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
             opacity: 0;
             visibility: hidden;
-            transform: translate(-50%, 10px);
-            transition: all 0.2s ease-in-out;
+            transform: translateY(10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 60;
+            pointer-events: none;
+            padding-top: 0;
         }
 
         .tool-card {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .tool-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-        }
-
-        .section-title {
-            color: #1b4f34;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            padding-left: 0.5rem;
-            border-left: 4px solid #1b4f34;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .loader {
@@ -102,127 +109,130 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen font-sans">
 
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-50 h-16 border-b border-gray-100">
-        <div class="max-w-[1400px] mx-auto px-4 h-full flex items-center justify-between relative">
+    <header class="bg-white shadow-sm sticky top-0 z-50 h-16 border-b border-gray-200">
+        <div class="relative max-w-[1400px] mx-auto px-4 h-full flex items-center justify-between">
             
             <!-- Logo -->
-            <a href="#" onclick="goHome(); return false;" class="flex items-center gap-2 mr-8 group z-50">
-                <div class="bg-brand text-white p-1.5 rounded-lg group-hover:bg-brandHover transition">
-                    <span class="material-icons-round text-2xl">picture_as_pdf</span>
+            <a href="#" onclick="goHome(); return false;" class="flex items-center gap-2 mr-8 flex-shrink-0 cursor-pointer z-50">
+                <div class="flex items-center text-brand font-bold text-2xl tracking-tight">
+                    <span class="material-icons-round text-3xl mr-1 text-brand">picture_as_pdf</span>
+                    PDF Tools
                 </div>
-                <span class="font-bold text-xl text-slate-700 tracking-tight">PDF Tools</span>
             </a>
 
             <!-- Navigation -->
-            <nav class="hidden lg:flex h-full items-center justify-center flex-1 space-x-1">
-                <a href="#" onclick="route('merge')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 結合</a>
-                <a href="#" onclick="route('split')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 分割</a>
-                <a href="#" onclick="route('compress')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 圧縮</a>
+            <nav class="hidden lg:flex h-full items-center flex-1 space-x-1">
+                <a href="#" onclick="route('merge'); return false;" class="h-full flex items-center px-4 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 結合</a>
+                <a href="#" onclick="route('split'); return false;" class="h-full flex items-center px-4 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 分割</a>
+                <a href="#" onclick="route('compress'); return false;" class="h-full flex items-center px-4 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 圧縮</a>
                 
-                <!-- Dropdown: Convert -->
-                <div class="nav-item group h-full flex items-center px-4 cursor-pointer relative">
-                    <span class="font-bold text-slate-600 hover:text-brand flex items-center gap-1 transition text-sm uppercase">
-                        PDF 変換 <span class="material-icons-round text-sm">expand_more</span>
+                <!-- Dropdown: PDF Convert -->
+                <div class="group h-full flex items-center px-4 cursor-pointer relative">
+                    <span class="font-bold text-slate-600 group-hover:text-brand flex items-center gap-1 transition text-sm uppercase h-full">
+                        PDF 変換 <span class="material-icons-round text-sm transition-transform group-hover:rotate-180">expand_more</span>
                     </span>
-                    <!-- Centered Mega Menu -->
-                    <div class="mega-menu absolute top-16 left-1/2 w-[600px] bg-white shadow-xl rounded-b-lg border-t-4 border-brand p-6 z-40 grid grid-cols-2 gap-8">
-                        <div>
-                            <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFに変換</p>
-                            <ul class="space-y-2">
-                                <li><a href="#" onclick="route('convert_img2pdf')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>JPG PDF 変換</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>WORD PDF 変換</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PPT PDF 変換</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>EXCEL PDF 変換</a></li>
-                                <li><a href="#" onclick="route('convert_html')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">html</span>HTMLからPDF</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFから変換</p>
-                            <ul class="space-y-2">
-                                <li><a href="#" onclick="route('convert_pdf2img')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>PDF JPEG 変換</a></li>
-                                <li><a href="#" onclick="route('pdf_to_word')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>PDF WORD 変換</a></li>
-                                <li><a href="#" onclick="route('pdf_to_ppt')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PDF PPT 変換</a></li>
-                                <li><a href="#" onclick="route('pdf_to_excel')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>PDF EXCEL 変換</a></li>
-                                <li><a href="#" onclick="route('pdf_to_pdfa')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">picture_as_pdf</span>PDF PDF/A</a></li>
-                            </ul>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 w-[600px] pt-0 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+                        <div class="bg-white shadow-xl rounded-b-lg border-t-4 border-brand p-6 grid grid-cols-2 gap-8 mt-0.5">
+                            <div>
+                                <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFに変換</p>
+                                <ul class="space-y-2">
+                                    <li><a href="#" onclick="route('convert_img2pdf'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>JPG PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>WORD PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PPT PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>EXCEL PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_html'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">html</span>HTMLからPDF</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFから変換</p>
+                                <ul class="space-y-2">
+                                    <li><a href="#" onclick="route('convert_pdf2img'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>PDF JPEG 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_word'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>PDF WORD 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_ppt'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PDF PPT 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_excel'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>PDF EXCEL 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_pdfa'); return false;" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">picture_as_pdf</span>PDFからPDF/A</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Mega Menu: All Tools -->
-                <div class="nav-item group h-full flex items-center px-4 cursor-pointer relative">
-                    <span class="font-bold text-slate-600 hover:text-brand flex items-center gap-1 transition text-sm uppercase">
-                        すべてのPDFツール <span class="material-icons-round text-sm">expand_more</span>
+                <!-- Mega Menu: All Tools (Full Width) -->
+                <div class="nav-item-static group h-full flex items-center px-4 cursor-pointer">
+                    <span class="font-bold text-slate-600 group-hover:text-brand flex items-center gap-1 transition text-sm uppercase h-full">
+                        すべてのPDFツール <span class="material-icons-round text-sm transition-transform group-hover:rotate-180">expand_more</span>
                     </span>
                     
-                    <div class="mega-menu absolute top-16 left-1/2 w-full max-w-[1200px] bg-white shadow-2xl rounded-b-xl border-t-4 border-brand p-8 z-40 grid grid-cols-6 gap-6">
-                        <!-- Col 1 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを編成</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('merge')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_merge</span>PDF 結合</a></li>
-                                <li><a href="#" onclick="route('split')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_split</span>PDF 分割</a></li>
-                                <li><a href="#" onclick="route('organize_remove')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">delete</span>ページを削除</a></li>
-                                <li><a href="#" onclick="route('split_extract')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">filter_none</span>ページ抽出</a></li>
-                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">grid_view</span>PDFを編成</a></li>
-                                <li><a href="#" onclick="route('scan')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">scanner</span>PDFにスキャン</a></li>
-                            </ul>
-                        </div>
-                        <!-- Col 2 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを最適化</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('compress')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">compress</span>PDF 圧縮</a></li>
-                                <li><a href="#" onclick="route('repair')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">build</span>PDF修復</a></li>
-                                <li><a href="#" onclick="route('ocr')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">text_snippet</span>OCR PDF</a></li>
-                            </ul>
-                        </div>
-                        <!-- Col 3 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFに変換</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('convert_img2pdf')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>JPG PDF</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>WORD PDF</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PPT PDF</a></li>
-                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>EXCEL PDF</a></li>
-                                <li><a href="#" onclick="route('convert_html')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">html</span>HTML PDF</a></li>
-                            </ul>
-                        </div>
-                        <!-- Col 4 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFから変換</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('convert_pdf2img')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>PDF JPEG</a></li>
-                                <li><a href="#" onclick="route('pdf_to_word')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>PDF WORD</a></li>
-                                <li><a href="#" onclick="route('pdf_to_ppt')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PDF PPT</a></li>
-                                <li><a href="#" onclick="route('pdf_to_excel')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>PDF EXCEL</a></li>
-                                <li><a href="#" onclick="route('pdf_to_pdfa')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">picture_as_pdf</span>PDF PDF/A</a></li>
-                            </ul>
-                        </div>
-                        <!-- Col 5 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを編集</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">rotate_right</span>PDFの回転</a></li>
-                                <li><a href="#" onclick="route('edit_pagenum')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">format_list_numbered</span>ページ番号</a></li>
-                                <li><a href="#" onclick="route('edit_watermark')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">branding_watermark</span>透かし追加</a></li>
-                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">crop</span>トリミング</a></li>
-                                <li><a href="#" onclick="route('edit_sign')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">edit</span>PDFを編集</a></li>
-                            </ul>
-                        </div>
-                        <!-- Col 6 -->
-                        <div class="space-y-3">
-                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDF セキュリティ</h3>
-                            <ul class="space-y-2 text-sm text-slate-600">
-                                <li><a href="#" onclick="route('security_unlock')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock_open</span>ロック解除</a></li>
-                                <li><a href="#" onclick="route('security_protect')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock</span>PDFを保護</a></li>
-                                <li><a href="#" onclick="route('edit_sign')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">history_edu</span>PDFに署名</a></li>
-                                <li><a href="#" onclick="route('edit_redact')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">format_paint</span>PDFを墨消し</a></li>
-                                <li><a href="#" onclick="route('repair_compare')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">compare_arrows</span>PDFを比較</a></li>
-                            </ul>
+                    <div class="mega-menu-container">
+                        <div class="bg-white shadow-mega rounded-b-xl border-t-4 border-brand p-8 grid grid-cols-6 gap-6 mt-[1px] max-w-[1400px] mx-auto">
+                            <!-- Col 1 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDFを編成</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('merge'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_merge</span>PDF 結合</a></li>
+                                    <li><a href="#" onclick="route('split'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_split</span>PDF 分割</a></li>
+                                    <li><a href="#" onclick="route('organize_remove'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">delete</span>ページを削除</a></li>
+                                    <li><a href="#" onclick="route('split_extract'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">filter_none</span>ページ抽出</a></li>
+                                    <li><a href="#" onclick="route('organize'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">grid_view</span>PDFを編成</a></li>
+                                    <li><a href="#" onclick="route('scan'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">scanner</span>PDFにスキャン</a></li>
+                                </ul>
+                            </div>
+                            <!-- Col 2 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDFを最適化</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('compress'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-green-600">compress</span>PDF 圧縮</a></li>
+                                    <li><a href="#" onclick="route('repair'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-green-600">build</span>PDF修復</a></li>
+                                    <li><a href="#" onclick="route('ocr'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-green-600">text_snippet</span>OCR PDF</a></li>
+                                </ul>
+                            </div>
+                            <!-- Col 3 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDFに変換</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('convert_img2pdf'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>JPG PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>WORD PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PPT PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_office'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>EXCEL PDF 変換</a></li>
+                                    <li><a href="#" onclick="route('convert_html'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">html</span>HTMLからPDF</a></li>
+                                </ul>
+                            </div>
+                            <!-- Col 4 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDFから変換</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('convert_pdf2img'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>PDF JPEG 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_word'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>PDF WORD 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_ppt'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PDF PPT 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_excel'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>PDF EXCEL 変換</a></li>
+                                    <li><a href="#" onclick="route('pdf_to_pdfa'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">picture_as_pdf</span>PDFからPDF/A</a></li>
+                                </ul>
+                            </div>
+                            <!-- Col 5 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDFを編集</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('organize'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">rotate_right</span>PDFの回転</a></li>
+                                    <li><a href="#" onclick="route('edit_pagenum'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">format_list_numbered</span>ページ番号の設定</a></li>
+                                    <li><a href="#" onclick="route('edit_watermark'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">branding_watermark</span>透かし追加</a></li>
+                                    <li><a href="#" onclick="route('organize'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">crop</span>トリミング</a></li>
+                                    <li><a href="#" onclick="route('edit_sign'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">edit</span>PDFを編集</a></li>
+                                </ul>
+                            </div>
+                            <!-- Col 6 -->
+                            <div class="space-y-3">
+                                <h3 class="text-brand font-bold text-xs uppercase tracking-wider mb-2">PDF セキュリティ</h3>
+                                <ul class="space-y-1 text-sm text-slate-600">
+                                    <li><a href="#" onclick="route('security_unlock'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock_open</span>ロック解除</a></li>
+                                    <li><a href="#" onclick="route('security_protect'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock</span>PDFを保護</a></li>
+                                    <li><a href="#" onclick="route('edit_sign'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">history_edu</span>PDFに署名</a></li>
+                                    <li><a href="#" onclick="route('edit_redact'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">format_paint</span>PDFを墨消し</a></li>
+                                    <li><a href="#" onclick="route('repair_compare'); return false;" class="hover:text-brand hover:bg-slate-50 p-1.5 rounded flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">compare_arrows</span>PDFを比較</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -285,11 +295,11 @@
             'pdf_to_pdfa': { title: 'PDFからPDF/A', desc: 'アーカイブ用変換', icon: 'picture_as_pdf', color: 'text-slate-600', action: 'single', accept: '.pdf' },
 
             // PDFを編集
-            'organize_rotate': { title: 'PDFの回転', desc: 'ページを回転', icon: 'rotate_right', color: 'text-icoEdit', action: 'single', accept: '.pdf', alias: 'organize' },
-            'edit_pagenum': { title: 'ページ番号', desc: '番号を追加', icon: 'format_list_numbered', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
-            'edit_watermark': { title: '透かし追加', desc: '透かしを挿入', icon: 'branding_watermark', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
-            'edit_trim': { title: 'トリミング', desc: '余白をカット', icon: 'crop', color: 'text-icoEdit', action: 'single', accept: '.pdf', alias: 'organize' },
-            'edit_sign': { title: 'PDFを編集', desc: '署名・手書き', icon: 'edit', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
+            'organize_rotate': { title: 'PDFの回転', desc: 'ページを回転', icon: 'rotate_right', color: 'text-slate-600', action: 'single', accept: '.pdf', alias: 'organize' },
+            'edit_pagenum': { title: 'ページ番号', desc: '番号を追加', icon: 'format_list_numbered', color: 'text-slate-600', action: 'single', accept: '.pdf' },
+            'edit_watermark': { title: '透かし追加', desc: '透かしを挿入', icon: 'branding_watermark', color: 'text-slate-600', action: 'single', accept: '.pdf' },
+            'edit_trim': { title: 'トリミング', desc: '余白をカット', icon: 'crop', color: 'text-slate-600', action: 'single', accept: '.pdf', alias: 'organize' },
+            'edit_sign': { title: 'PDFを編集', desc: '署名・手書き', icon: 'edit', color: 'text-slate-600', action: 'single', accept: '.pdf' },
 
             // PDF セキュリティ
             'security_unlock': { title: 'ロック解除', desc: 'パスワード解除', icon: 'lock_open', color: 'text-icoSec', action: 'single', accept: '.pdf' },
@@ -299,24 +309,22 @@
             'repair_compare': { title: 'PDFを比較', desc: '差分を比較', icon: 'compare_arrows', color: 'text-icoSec', action: 'custom' },
         };
 
-        // --- Core Functions ---
-        
+        // --- Init ---
         fileInput.addEventListener('change', handleFiles);
         goHome();
 
+        // --- Router ---
         function route(key) {
             let conf = routes[key];
             if(conf.alias) {
                 key = conf.alias;
                 conf = routes[key];
             }
-            
             currentRoute = key;
             filesQueue = []; singleFile = null; pdfDoc = null; orgPages = [];
             
             if(conf.action === 'custom') renderCustomView(key);
             else renderUploadView(conf);
-            
             window.scrollTo(0,0);
         }
 
@@ -326,66 +334,47 @@
             window.scrollTo(0,0);
         }
 
-        // --- Renderers ---
-
+        // --- Views ---
         function renderHome() {
-            // Categorized Lists based on the provided image structure
-            const categories = [
-                {
-                    title: 'PDFを編成',
-                    items: ['merge', 'split', 'organize_remove', 'split_extract', 'organize', 'scan']
-                },
-                {
-                    title: 'PDFを最適化',
-                    items: ['compress', 'repair', 'ocr']
-                },
-                {
-                    title: 'PDFに変換',
-                    items: ['convert_img2pdf', 'convert_office', 'convert_ppt', 'convert_excel', 'convert_html']
-                },
-                {
-                    title: 'PDFから変換',
-                    items: ['convert_pdf2img', 'pdf_to_word', 'pdf_to_ppt', 'pdf_to_excel', 'pdf_to_pdfa']
-                },
-                {
-                    title: 'PDFを編集',
-                    items: ['organize_rotate', 'edit_pagenum', 'edit_watermark', 'edit_trim', 'edit_sign']
-                },
-                {
-                    title: 'PDF セキュリティ',
-                    items: ['security_unlock', 'security_protect', 'edit_sign_sec', 'edit_redact', 'repair_compare']
-                }
-            ];
-
-            const gridHtml = categories.map(cat => `
-                <div class="mb-12">
-                    <h3 class="section-title text-brand border-b-2 border-brand/10 pb-2 mb-4 text-lg font-bold flex items-center gap-2">
-                        ${cat.title}
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        ${cat.items.map(k => {
-                            const item = routes[k];
-                            return `
-                            <div onclick="route('${k}')" class="tool-link bg-white p-4 rounded-lg shadow-sm border border-slate-100 cursor-pointer flex items-center hover:bg-slate-50 hover:shadow-md transition-all">
-                                <span class="material-icons-round text-3xl mr-3 ${item.color}">${item.icon}</span>
-                                <div>
-                                    <h4 class="font-bold text-slate-700 text-sm">${item.title}</h4>
-                                    <p class="text-xs text-slate-400 mt-0.5">${item.desc}</p>
-                                </div>
-                            </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `).join('');
-
             root.innerHTML = `
-                <div class="bg-brandLight w-full py-16 px-4 text-center">
-                    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-6 tracking-tight">あらゆるPDF問題を解決するツール</h1>
+                <div class="bg-brandLight/50 w-full py-16 px-4 text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-6 tracking-tight leading-tight">あらゆるPDF問題を解決するツール</h1>
                     <p class="text-xl text-slate-600 max-w-3xl mx-auto">すべての機能がブラウザ上で完結。安全・高速・無料。</p>
                 </div>
-                <div class="max-w-[1400px] mx-auto px-4 py-12">
-                    ${gridHtml}
+                <div class="max-w-[1200px] mx-auto px-4 -mt-8 pb-20">
+                    <div class="space-y-10">
+                        ${generateHomeSection('PDFを編成', ['merge', 'split', 'organize_remove', 'split_extract', 'organize', 'scan'])}
+                        ${generateHomeSection('PDFを最適化', ['compress', 'repair', 'ocr'])}
+                        ${generateHomeSection('PDFに変換', ['convert_img2pdf', 'convert_office', 'convert_ppt', 'convert_excel', 'convert_html'])}
+                        ${generateHomeSection('PDFから変換', ['convert_pdf2img', 'pdf_to_word', 'pdf_to_ppt', 'pdf_to_excel', 'pdf_to_pdfa'])}
+                        ${generateHomeSection('PDFを編集', ['organize_rotate', 'edit_pagenum', 'edit_watermark', 'edit_trim', 'edit_sign'])}
+                        ${generateHomeSection('PDF セキュリティ', ['security_unlock', 'security_protect', 'edit_sign_sec', 'edit_redact', 'repair_compare'])}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateHomeSection(title, keys) {
+            const cardsHtml = keys.map(k => {
+                const item = routes[k];
+                // Horizontal card layout (Icon Left, Text Right) matching image_ab7bd1.png
+                return `
+                <div onclick="route('${k}'); return false;" class="tool-card bg-white p-4 rounded-lg shadow-soft border border-transparent hover:border-brand/20 flex items-center cursor-pointer h-full transition-all duration-200">
+                    <span class="material-icons-round text-4xl mr-4 flex-shrink-0 ${item.color}">${item.icon}</span>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-base mb-0.5">${item.title}</h4>
+                        <p class="text-xs text-slate-500 leading-tight">${item.desc}</p>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            return `
+                <div>
+                    <h3 class="text-brand font-bold text-sm uppercase tracking-wider mb-4 border-l-4 border-brand pl-3">${title}</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        ${cardsHtml}
+                    </div>
                 </div>
             `;
         }
@@ -427,43 +416,52 @@
 
             // --- Sidebar Options Generation ---
             
-            // Merge Quality Selector (Big/Medium/Small)
+            // Merge Quality Selector (Big/Medium/Small Buttons) - Requested Feature
             if (currentRoute === 'merge') {
                 sidebarOptions += `
-                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
                         <p class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">結合オプション</p>
                         <div class="space-y-3">
-                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
-                                <div class="flex items-center">
-                                    <input type="radio" name="mergeQuality" value="none" checked class="text-brand focus:ring-brand w-5 h-5">
-                                    <div class="ml-3">
-                                        <span class="block text-sm font-bold text-slate-700">高画質</span>
-                                        <span class="block text-xs text-slate-400">ファイルサイズ: 大</span>
+                            <label class="block cursor-pointer relative">
+                                <input type="radio" name="mergeQuality" value="none" checked class="peer sr-only">
+                                <div class="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand peer-checked:border-brand peer-checked:ring-2 peer-checked:ring-brand peer-checked:bg-brandLight peer-checked:shadow-sm transition flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-icons-round text-slate-400 peer-checked:text-brand">hd</span>
+                                        <div>
+                                            <span class="block text-sm font-bold text-slate-800">高画質 (大)</span>
+                                            <span class="block text-xs text-slate-500">オリジナル品質</span>
+                                        </div>
                                     </div>
+                                    <span class="material-icons-round text-brand hidden peer-checked:block">check_circle</span>
                                 </div>
-                                <span class="material-icons-round text-gray-300">hd</span>
                             </label>
                             
-                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
-                                <div class="flex items-center">
-                                    <input type="radio" name="mergeQuality" value="standard" class="text-brand focus:ring-brand w-5 h-5">
-                                    <div class="ml-3">
-                                        <span class="block text-sm font-bold text-slate-700">標準 (推奨)</span>
-                                        <span class="block text-xs text-slate-400">ファイルサイズ: 中</span>
+                            <label class="block cursor-pointer relative">
+                                <input type="radio" name="mergeQuality" value="standard" class="peer sr-only">
+                                <div class="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand peer-checked:border-brand peer-checked:ring-2 peer-checked:ring-brand peer-checked:bg-brandLight peer-checked:shadow-sm transition flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-icons-round text-slate-400 peer-checked:text-brand">settings</span>
+                                        <div>
+                                            <span class="block text-sm font-bold text-slate-800">標準 (中)</span>
+                                            <span class="block text-xs text-slate-500">バランス重視</span>
+                                        </div>
                                     </div>
+                                    <span class="material-icons-round text-brand hidden peer-checked:block">check_circle</span>
                                 </div>
-                                <span class="material-icons-round text-gray-300">settings</span>
                             </label>
                             
-                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
-                                <div class="flex items-center">
-                                    <input type="radio" name="mergeQuality" value="high" class="text-brand focus:ring-brand w-5 h-5">
-                                    <div class="ml-3">
-                                        <span class="block text-sm font-bold text-slate-700">低画質</span>
-                                        <span class="block text-xs text-slate-400">ファイルサイズ: 小</span>
+                            <label class="block cursor-pointer relative">
+                                <input type="radio" name="mergeQuality" value="high" class="peer sr-only">
+                                <div class="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand peer-checked:border-brand peer-checked:ring-2 peer-checked:ring-brand peer-checked:bg-brandLight peer-checked:shadow-sm transition flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-icons-round text-slate-400 peer-checked:text-brand">compress</span>
+                                        <div>
+                                            <span class="block text-sm font-bold text-slate-800">低画質 (小)</span>
+                                            <span class="block text-xs text-slate-500">最小サイズ</span>
+                                        </div>
                                     </div>
+                                    <span class="material-icons-round text-brand hidden peer-checked:block">check_circle</span>
                                 </div>
-                                <span class="material-icons-round text-gray-300">compress</span>
                             </label>
                         </div>
                     </div>
@@ -504,8 +502,7 @@
                 `;
             }
 
-            // --- Content Generation ---
-
+            // --- Content ---
             if (['organize', 'organize_remove', 'edit_redact'].includes(currentRoute)) {
                 content = `<div id="grid-view" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4"></div>`;
             } 
@@ -552,7 +549,6 @@
                                 </button>
                             </div>
                         </div>
-                        
                         <!-- Workspace -->
                         <div class="flex-grow w-full order-1 lg:order-2 min-h-[500px]">
                             ${content}
@@ -700,8 +696,8 @@
                         save(await merged.save(), 'merged.pdf');
                     } else {
                         // Resample Merge
-                        const merged = await PDFDocument.create();
                         let scale = quality === 'high' ? 1.0 : 1.5; 
+                        const merged = await PDFDocument.create();
                         
                         for (const f of filesQueue) {
                             const ab = await f.arrayBuffer();
