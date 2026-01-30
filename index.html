@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Tools - All-in-One</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#1b4f34', // Deep Green Base
+                        brandHover: '#143d28',
+                        brandLight: '#e8f5e9',
+                        
+                        // Icon Colors for UI
+                        icoPdf: '#e53e3e',
+                        icoWord: '#2b579a',
+                        icoExcel: '#217346',
+                        icoPpt: '#d24726',
+                        icoImg: '#f6b93b',
+                        icoSec: '#4a5568',
+                        icoEdit: '#9f7aea',
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px 0 rgba(0,0,0,0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; color: #333; }
+        
+        /* Mega Menu Logic */
+        .group:hover .mega-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0);
+        }
+        .mega-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, 10px);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tool-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+
+        .section-title {
+            color: #1b4f34;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+            border-left: 4px solid #1b4f34;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #1b4f34;
+            width: 32px; height: 32px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 h-16 border-b border-gray-100">
+        <div class="max-w-[1400px] mx-auto px-4 h-full flex items-center justify-between relative">
+            
+            <!-- Logo -->
+            <a href="#" onclick="goHome(); return false;" class="flex items-center gap-2 mr-8 group z-50">
+                <div class="bg-brand text-white p-1.5 rounded-lg group-hover:bg-brandHover transition">
+                    <span class="material-icons-round text-2xl">picture_as_pdf</span>
+                </div>
+                <span class="font-bold text-xl text-slate-700 tracking-tight">PDF Tools</span>
+            </a>
+
+            <!-- Navigation -->
+            <nav class="hidden lg:flex h-full items-center justify-center flex-1 space-x-1">
+                <a href="#" onclick="route('merge')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 結合</a>
+                <a href="#" onclick="route('split')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 分割</a>
+                <a href="#" onclick="route('compress')" class="px-4 py-2 font-bold text-slate-600 hover:text-brand transition text-sm uppercase">PDF 圧縮</a>
+                
+                <!-- Dropdown: Convert -->
+                <div class="nav-item group h-full flex items-center px-4 cursor-pointer relative">
+                    <span class="font-bold text-slate-600 hover:text-brand flex items-center gap-1 transition text-sm uppercase">
+                        PDF 変換 <span class="material-icons-round text-sm">expand_more</span>
+                    </span>
+                    <!-- Centered Mega Menu -->
+                    <div class="mega-menu absolute top-16 left-1/2 w-[600px] bg-white shadow-xl rounded-b-lg border-t-4 border-brand p-6 z-40 grid grid-cols-2 gap-8">
+                        <div>
+                            <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFに変換</p>
+                            <ul class="space-y-2">
+                                <li><a href="#" onclick="route('convert_img2pdf')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>JPG PDF 変換</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>WORD PDF 変換</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PPT PDF 変換</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>EXCEL PDF 変換</a></li>
+                                <li><a href="#" onclick="route('convert_html')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">html</span>HTMLからPDF</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-brand font-bold text-xs uppercase tracking-wider mb-4 border-b pb-2">PDFから変換</p>
+                            <ul class="space-y-2">
+                                <li><a href="#" onclick="route('convert_pdf2img')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoImg">image</span>PDF JPEG 変換</a></li>
+                                <li><a href="#" onclick="route('pdf_to_word')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoWord">description</span>PDF WORD 変換</a></li>
+                                <li><a href="#" onclick="route('pdf_to_ppt')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoPpt">slideshow</span>PDF PPT 変換</a></li>
+                                <li><a href="#" onclick="route('pdf_to_excel')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-icoExcel">table_chart</span>PDF EXCEL 変換</a></li>
+                                <li><a href="#" onclick="route('pdf_to_pdfa')" class="flex items-center text-sm text-slate-600 hover:text-brand hover:bg-slate-50 p-2 rounded transition"><span class="material-icons-round text-lg mr-3 text-slate-600">picture_as_pdf</span>PDF PDF/A</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mega Menu: All Tools -->
+                <div class="nav-item group h-full flex items-center px-4 cursor-pointer relative">
+                    <span class="font-bold text-slate-600 hover:text-brand flex items-center gap-1 transition text-sm uppercase">
+                        すべてのPDFツール <span class="material-icons-round text-sm">expand_more</span>
+                    </span>
+                    
+                    <div class="mega-menu absolute top-16 left-1/2 w-full max-w-[1200px] bg-white shadow-2xl rounded-b-xl border-t-4 border-brand p-8 z-40 grid grid-cols-6 gap-6">
+                        <!-- Col 1 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを編成</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('merge')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_merge</span>PDF 結合</a></li>
+                                <li><a href="#" onclick="route('split')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">call_split</span>PDF 分割</a></li>
+                                <li><a href="#" onclick="route('organize_remove')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">delete</span>ページを削除</a></li>
+                                <li><a href="#" onclick="route('split_extract')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">filter_none</span>ページ抽出</a></li>
+                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">grid_view</span>PDFを編成</a></li>
+                                <li><a href="#" onclick="route('scan')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPdf">scanner</span>PDFにスキャン</a></li>
+                            </ul>
+                        </div>
+                        <!-- Col 2 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを最適化</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('compress')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">compress</span>PDF 圧縮</a></li>
+                                <li><a href="#" onclick="route('repair')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">build</span>PDF修復</a></li>
+                                <li><a href="#" onclick="route('ocr')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-green-600">text_snippet</span>OCR PDF</a></li>
+                            </ul>
+                        </div>
+                        <!-- Col 3 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFに変換</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('convert_img2pdf')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>JPG PDF</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>WORD PDF</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PPT PDF</a></li>
+                                <li><a href="#" onclick="route('convert_office')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>EXCEL PDF</a></li>
+                                <li><a href="#" onclick="route('convert_html')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">html</span>HTML PDF</a></li>
+                            </ul>
+                        </div>
+                        <!-- Col 4 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFから変換</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('convert_pdf2img')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoImg">image</span>PDF JPEG</a></li>
+                                <li><a href="#" onclick="route('pdf_to_word')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoWord">description</span>PDF WORD</a></li>
+                                <li><a href="#" onclick="route('pdf_to_ppt')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoPpt">slideshow</span>PDF PPT</a></li>
+                                <li><a href="#" onclick="route('pdf_to_excel')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoExcel">table_chart</span>PDF EXCEL</a></li>
+                                <li><a href="#" onclick="route('pdf_to_pdfa')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-slate-600">picture_as_pdf</span>PDF PDF/A</a></li>
+                            </ul>
+                        </div>
+                        <!-- Col 5 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDFを編集</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">rotate_right</span>PDFの回転</a></li>
+                                <li><a href="#" onclick="route('edit_pagenum')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">format_list_numbered</span>ページ番号</a></li>
+                                <li><a href="#" onclick="route('edit_watermark')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">branding_watermark</span>透かし追加</a></li>
+                                <li><a href="#" onclick="route('organize')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">crop</span>トリミング</a></li>
+                                <li><a href="#" onclick="route('edit_sign')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoEdit">edit</span>PDFを編集</a></li>
+                            </ul>
+                        </div>
+                        <!-- Col 6 -->
+                        <div class="space-y-3">
+                            <h3 class="text-brand font-bold text-xs uppercase tracking-wider flex items-center gap-1">PDF セキュリティ</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><a href="#" onclick="route('security_unlock')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock_open</span>ロック解除</a></li>
+                                <li><a href="#" onclick="route('security_protect')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">lock</span>PDFを保護</a></li>
+                                <li><a href="#" onclick="route('edit_sign')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">history_edu</span>PDFに署名</a></li>
+                                <li><a href="#" onclick="route('edit_redact')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">format_paint</span>PDFを墨消し</a></li>
+                                <li><a href="#" onclick="route('repair_compare')" class="hover:text-brand flex items-center gap-2"><span class="material-icons-round text-base text-icoSec">compare_arrows</span>PDFを比較</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="w-10"></div>
+        </div>
+    </header>
+
+    <main id="app-root" class="flex-grow flex flex-col relative"></main>
+
+    <div id="loader-overlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[60] hidden flex flex-col items-center justify-center">
+        <div class="loader mb-4"></div>
+        <p id="loader-text" class="text-lg font-bold text-brand animate-pulse">処理中...</p>
+    </div>
+
+    <input type="file" id="global-file-input" multiple class="hidden">
+
+    <script>
+        // --- Core State ---
+        let currentRoute = 'home';
+        let filesQueue = [];
+        let singleFile = null;
+        let pdfDoc = null;
+        let orgPages = [];
+        let signPad = null;
+        
+        const root = document.getElementById('app-root');
+        const fileInput = document.getElementById('global-file-input');
+        const loader = document.getElementById('loader-overlay');
+        const loaderText = document.getElementById('loader-text');
+
+        // --- Route Config ---
+        const routes = {
+            // PDFを編成
+            'merge': { title: 'PDF 結合', desc: '複数のPDFを結合', icon: 'call_merge', color: 'text-icoPdf', action: 'files', accept: '.pdf' },
+            'split': { title: 'PDF 分割', desc: 'ページ範囲で分割', icon: 'call_split', color: 'text-icoPdf', action: 'single', accept: '.pdf' },
+            'organize_remove': { title: 'ページを削除', desc: '不要ページを削除', icon: 'delete', color: 'text-icoPdf', action: 'single', accept: '.pdf' },
+            'split_extract': { title: 'ページを抽出', desc: '指定ページを抽出', icon: 'filter_none', color: 'text-icoPdf', action: 'single', accept: '.pdf' },
+            'organize': { title: 'PDFを編成', desc: '並び替え・回転', icon: 'grid_view', color: 'text-icoPdf', action: 'single', accept: '.pdf' },
+            'scan': { title: 'PDFにスキャン', desc: '画像からPDF作成', icon: 'scanner', color: 'text-icoPdf', action: 'files', accept: '.jpg,.png' },
+
+            // PDFを最適化
+            'compress': { title: 'PDF 圧縮', desc: 'サイズを軽量化', icon: 'compress', color: 'text-green-600', action: 'single', accept: '.pdf' },
+            'repair': { title: 'PDF修復', desc: '破損データを復旧', icon: 'build', color: 'text-green-600', action: 'single', accept: '.pdf' },
+            'ocr': { title: 'OCR PDF', desc: 'テキスト認識', icon: 'text_snippet', color: 'text-green-600', action: 'single', accept: '.pdf,.jpg,.png' },
+
+            // PDFに変換
+            'convert_img2pdf': { title: 'JPG PDF 変換', desc: '画像をPDFに', icon: 'image', color: 'text-icoImg', action: 'files', accept: '.jpg,.jpeg,.png' },
+            'convert_office': { title: 'WORD PDF 変換', desc: 'WordをPDFに', icon: 'description', color: 'text-icoWord', action: 'files', accept: '.docx' },
+            'convert_ppt': { title: 'PPT PDF 変換', desc: 'PPTをPDFに', icon: 'slideshow', color: 'text-icoPpt', action: 'files', accept: '.pptx', alias: 'convert_office' },
+            'convert_excel': { title: 'EXCEL PDF 変換', desc: 'ExcelをPDFに', icon: 'table_chart', color: 'text-icoExcel', action: 'files', accept: '.xlsx', alias: 'convert_office' },
+            'convert_html': { title: 'HTMLからPDF', desc: 'WebをPDFに', icon: 'html', color: 'text-slate-600', action: 'files', accept: '.html' },
+
+            // PDFから変換
+            'convert_pdf2img': { title: 'PDF JPEG 変換', desc: 'PDFを画像に', icon: 'image', color: 'text-icoImg', action: 'single', accept: '.pdf' },
+            'pdf_to_word': { title: 'PDF WORD 変換', desc: 'PDFをWordに', icon: 'description', color: 'text-icoWord', action: 'single', accept: '.pdf' },
+            'pdf_to_ppt': { title: 'PDF PPT 変換', desc: 'PDFをPPTに', icon: 'slideshow', color: 'text-icoPpt', action: 'single', accept: '.pdf' },
+            'pdf_to_excel': { title: 'PDF EXCEL 変換', desc: 'PDFをExcelに', icon: 'table_chart', color: 'text-icoExcel', action: 'single', accept: '.pdf' },
+            'pdf_to_pdfa': { title: 'PDFからPDF/A', desc: 'アーカイブ用変換', icon: 'picture_as_pdf', color: 'text-slate-600', action: 'single', accept: '.pdf' },
+
+            // PDFを編集
+            'organize_rotate': { title: 'PDFの回転', desc: 'ページを回転', icon: 'rotate_right', color: 'text-icoEdit', action: 'single', accept: '.pdf', alias: 'organize' },
+            'edit_pagenum': { title: 'ページ番号', desc: '番号を追加', icon: 'format_list_numbered', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
+            'edit_watermark': { title: '透かし追加', desc: '透かしを挿入', icon: 'branding_watermark', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
+            'edit_trim': { title: 'トリミング', desc: '余白をカット', icon: 'crop', color: 'text-icoEdit', action: 'single', accept: '.pdf', alias: 'organize' },
+            'edit_sign': { title: 'PDFを編集', desc: '署名・手書き', icon: 'edit', color: 'text-icoEdit', action: 'single', accept: '.pdf' },
+
+            // PDF セキュリティ
+            'security_unlock': { title: 'ロック解除', desc: 'パスワード解除', icon: 'lock_open', color: 'text-icoSec', action: 'single', accept: '.pdf' },
+            'security_protect': { title: 'PDFを保護', desc: 'パスワード設定', icon: 'lock', color: 'text-icoSec', action: 'single', accept: '.pdf' },
+            'edit_sign_sec': { title: 'PDFに署名', desc: '電子署名', icon: 'history_edu', color: 'text-icoSec', action: 'single', accept: '.pdf', alias: 'edit_sign' },
+            'edit_redact': { title: 'PDFを墨消し', desc: '機密情報を隠す', icon: 'format_paint', color: 'text-icoSec', action: 'single', accept: '.pdf' },
+            'repair_compare': { title: 'PDFを比較', desc: '差分を比較', icon: 'compare_arrows', color: 'text-icoSec', action: 'custom' },
+        };
+
+        // --- Core Functions ---
+        
+        fileInput.addEventListener('change', handleFiles);
+        goHome();
+
+        function route(key) {
+            let conf = routes[key];
+            if(conf.alias) {
+                key = conf.alias;
+                conf = routes[key];
+            }
+            
+            currentRoute = key;
+            filesQueue = []; singleFile = null; pdfDoc = null; orgPages = [];
+            
+            if(conf.action === 'custom') renderCustomView(key);
+            else renderUploadView(conf);
+            
+            window.scrollTo(0,0);
+        }
+
+        function goHome() {
+            currentRoute = 'home';
+            renderHome();
+            window.scrollTo(0,0);
+        }
+
+        // --- Renderers ---
+
+        function renderHome() {
+            // Categorized Lists based on the provided image structure
+            const categories = [
+                {
+                    title: 'PDFを編成',
+                    items: ['merge', 'split', 'organize_remove', 'split_extract', 'organize', 'scan']
+                },
+                {
+                    title: 'PDFを最適化',
+                    items: ['compress', 'repair', 'ocr']
+                },
+                {
+                    title: 'PDFに変換',
+                    items: ['convert_img2pdf', 'convert_office', 'convert_ppt', 'convert_excel', 'convert_html']
+                },
+                {
+                    title: 'PDFから変換',
+                    items: ['convert_pdf2img', 'pdf_to_word', 'pdf_to_ppt', 'pdf_to_excel', 'pdf_to_pdfa']
+                },
+                {
+                    title: 'PDFを編集',
+                    items: ['organize_rotate', 'edit_pagenum', 'edit_watermark', 'edit_trim', 'edit_sign']
+                },
+                {
+                    title: 'PDF セキュリティ',
+                    items: ['security_unlock', 'security_protect', 'edit_sign_sec', 'edit_redact', 'repair_compare']
+                }
+            ];
+
+            const gridHtml = categories.map(cat => `
+                <div class="mb-12">
+                    <h3 class="section-title text-brand border-b-2 border-brand/10 pb-2 mb-4 text-lg font-bold flex items-center gap-2">
+                        ${cat.title}
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        ${cat.items.map(k => {
+                            const item = routes[k];
+                            return `
+                            <div onclick="route('${k}')" class="tool-link bg-white p-4 rounded-lg shadow-sm border border-slate-100 cursor-pointer flex items-center hover:bg-slate-50 hover:shadow-md transition-all">
+                                <span class="material-icons-round text-3xl mr-3 ${item.color}">${item.icon}</span>
+                                <div>
+                                    <h4 class="font-bold text-slate-700 text-sm">${item.title}</h4>
+                                    <p class="text-xs text-slate-400 mt-0.5">${item.desc}</p>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            root.innerHTML = `
+                <div class="bg-brandLight w-full py-16 px-4 text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-6 tracking-tight">あらゆるPDF問題を解決するツール</h1>
+                    <p class="text-xl text-slate-600 max-w-3xl mx-auto">すべての機能がブラウザ上で完結。安全・高速・無料。</p>
+                </div>
+                <div class="max-w-[1400px] mx-auto px-4 py-12">
+                    ${gridHtml}
+                </div>
+            `;
+        }
+
+        function renderUploadView(conf) {
+            root.innerHTML = `
+                <div class="flex-grow flex flex-col items-center justify-center p-4 bg-slate-50">
+                    <div class="max-w-4xl w-full text-center">
+                        <div class="mb-10">
+                            <h2 class="text-4xl font-bold text-slate-800 mb-4">${conf.title}</h2>
+                            <p class="text-xl text-slate-600">${conf.desc}</p>
+                        </div>
+                        <div onclick="triggerFileSelect()" class="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-16 cursor-pointer hover:bg-brandLight hover:border-brand transition group relative shadow-sm">
+                            <div class="flex flex-col items-center justify-center pointer-events-none">
+                                <span class="material-icons-round text-8xl mb-6 ${conf.color} group-hover:scale-110 transition-transform">${conf.icon}</span>
+                                <button class="bg-brand hover:bg-brandHover text-white text-2xl font-bold py-4 px-12 rounded-xl shadow-lg transition pointer-events-auto">
+                                    ファイルを選択
+                                </button>
+                                <p class="text-slate-400 mt-4 font-medium">または、ここにファイルをドロップ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const dropZone = root.querySelector('div[onclick]');
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-brand', 'bg-brandLight'); });
+            dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('border-brand', 'bg-brandLight'); });
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('border-brand', 'bg-brandLight');
+                handleFiles({ target: { files: e.dataTransfer.files } });
+            });
+        }
+
+        function renderWorkspace() {
+            const conf = routes[currentRoute];
+            let content = '';
+            let sidebarOptions = '';
+
+            // --- Sidebar Options Generation ---
+            
+            // Merge Quality Selector (Big/Medium/Small)
+            if (currentRoute === 'merge') {
+                sidebarOptions += `
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                        <p class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">結合オプション</p>
+                        <div class="space-y-3">
+                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
+                                <div class="flex items-center">
+                                    <input type="radio" name="mergeQuality" value="none" checked class="text-brand focus:ring-brand w-5 h-5">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-bold text-slate-700">高画質</span>
+                                        <span class="block text-xs text-slate-400">ファイルサイズ: 大</span>
+                                    </div>
+                                </div>
+                                <span class="material-icons-round text-gray-300">hd</span>
+                            </label>
+                            
+                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
+                                <div class="flex items-center">
+                                    <input type="radio" name="mergeQuality" value="standard" class="text-brand focus:ring-brand w-5 h-5">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-bold text-slate-700">標準 (推奨)</span>
+                                        <span class="block text-xs text-slate-400">ファイルサイズ: 中</span>
+                                    </div>
+                                </div>
+                                <span class="material-icons-round text-gray-300">settings</span>
+                            </label>
+                            
+                            <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-brand transition">
+                                <div class="flex items-center">
+                                    <input type="radio" name="mergeQuality" value="high" class="text-brand focus:ring-brand w-5 h-5">
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-bold text-slate-700">低画質</span>
+                                        <span class="block text-xs text-slate-400">ファイルサイズ: 小</span>
+                                    </div>
+                                </div>
+                                <span class="material-icons-round text-gray-300">compress</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // PDF to Office Target Selector
+            if(['pdf_to_word', 'pdf_to_excel', 'pdf_to_ppt'].includes(currentRoute)) {
+                let googleLabel = 'Google ドキュメント', msLabel = 'Word (.docx)';
+                if(currentRoute === 'pdf_to_excel') { msLabel = 'Excel (.xlsx)'; googleLabel = 'Google スプレッドシート'; }
+                if(currentRoute === 'pdf_to_ppt') { msLabel = 'PowerPoint (.pptx)'; googleLabel = 'Google スライド'; }
+                
+                sidebarOptions += `
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                        <p class="text-xs font-bold text-slate-500 mb-3 uppercase">出力形式</p>
+                        <div class="space-y-2">
+                            <label class="flex items-center p-2 rounded cursor-pointer hover:bg-slate-100 border border-transparent hover:border-slate-200">
+                                <input type="radio" name="targetApp" value="ms" checked class="text-brand focus:ring-brand w-4 h-4">
+                                <span class="ml-2 text-sm font-bold text-slate-700">Microsoft Office</span>
+                            </label>
+                            <label class="flex items-center p-2 rounded cursor-pointer hover:bg-slate-100 border border-transparent hover:border-slate-200">
+                                <input type="radio" name="targetApp" value="google" class="text-brand focus:ring-brand w-4 h-4">
+                                <span class="ml-2 text-sm font-bold text-slate-700">${googleLabel}用</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Edit Options
+            if(currentRoute === 'edit_sign') {
+                sidebarOptions += `
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                        <p class="text-xs font-bold text-slate-500 mb-2 uppercase">署名位置</p>
+                        <label class="flex items-center p-2"><input type="radio" name="signPos" value="first" checked class="mr-2"> 1ページ目のみ</label>
+                        <label class="flex items-center p-2"><input type="radio" name="signPos" value="all" class="mr-2"> 全ページ</label>
+                    </div>
+                `;
+            }
+
+            // --- Content Generation ---
+
+            if (['organize', 'organize_remove', 'edit_redact'].includes(currentRoute)) {
+                content = `<div id="grid-view" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4"></div>`;
+            } 
+            else if (currentRoute === 'edit_sign') {
+                content = `
+                    <div class="flex flex-col items-center justify-center h-full min-h-[400px]">
+                        <div class="bg-white p-2 shadow border rounded relative">
+                            <canvas id="sign-canvas" width="600" height="300" class="cursor-crosshair bg-white"></canvas>
+                            <div class="absolute bottom-2 left-0 right-0 text-center text-slate-300 pointer-events-none">署名エリア</div>
+                            <button onclick="signPad.clear()" class="absolute top-2 right-2 text-xs text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-1 rounded">クリア</button>
+                        </div>
+                    </div>`;
+            }
+            else {
+                // List View
+                content = `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                            <span class="font-bold text-slate-600 text-sm">ファイルリスト</span>
+                            <button onclick="route(currentRoute)" class="text-xs text-red-500 font-bold hover:underline">リセット</button>
+                        </div>
+                        <ul id="file-list" class="divide-y divide-slate-100 overflow-y-auto flex-grow custom-scrollbar"></ul>
+                    </div>
+                `;
+            }
+
+            root.innerHTML = `
+                <div class="flex-grow bg-slate-100 p-4 md:p-8">
+                    <div class="max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-6 items-start">
+                        <!-- Sidebar -->
+                        <div class="w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
+                            <div class="bg-white p-6 rounded-xl shadow-sm sticky top-24">
+                                <h3 class="font-bold text-lg mb-4 text-center text-slate-700">${conf.title}</h3>
+                                <div class="text-center mb-6 border-b pb-4 border-slate-100">
+                                    <span class="text-4xl font-bold text-brand">${filesQueue.length}</span>
+                                    <span class="text-sm text-slate-500">ファイル</span>
+                                </div>
+                                ${sidebarOptions}
+                                <button onclick="executeAction()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-4 rounded-xl shadow-md transition flex justify-center items-center gap-2 text-lg">
+                                    ${conf.title.replace('PDF ','')} <span class="material-icons-round">arrow_forward</span>
+                                </button>
+                                <button onclick="triggerFileSelect()" class="w-full mt-4 border-2 border-brand text-brand hover:bg-brandLight font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
+                                    <span class="material-icons-round">add</span> 追加
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Workspace -->
+                        <div class="flex-grow w-full order-1 lg:order-2 min-h-[500px]">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Post-Render
+            if (['organize', 'organize_remove', 'edit_redact'].includes(currentRoute)) initGridView();
+            if (currentRoute === 'edit_sign') signPad = new SignaturePad(document.getElementById('sign-canvas'));
+            if (!['organize', 'organize_remove', 'edit_redact', 'edit_sign'].includes(currentRoute)) updateFileList();
+        }
+
+        function renderCustomView(key) {
+            root.innerHTML = `
+                <div class="flex-grow bg-slate-100 p-8 flex flex-col items-center">
+                    <div class="bg-white p-8 rounded-2xl shadow-md max-w-4xl w-full">
+                        <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">PDFを比較</h2>
+                        <div class="grid grid-cols-2 gap-8 mb-8">
+                            <div><p class="font-bold mb-2">ファイル A</p><input type="file" id="cmp-a" accept=".pdf" class="w-full text-sm"></div>
+                            <div><p class="font-bold mb-2">ファイル B</p><input type="file" id="cmp-b" accept=".pdf" class="w-full text-sm"></div>
+                        </div>
+                        <button onclick="startCompare()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3 rounded-xl shadow-md">比較を開始</button>
+                        <div id="compare-result" class="mt-8 grid grid-cols-2 gap-4 h-[500px] hidden border-t pt-4">
+                            <div id="view-a" class="overflow-y-auto border bg-slate-50 p-2 custom-scrollbar"></div>
+                            <div id="view-b" class="overflow-y-auto border bg-slate-50 p-2 custom-scrollbar"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Handlers ---
+        function triggerFileSelect() {
+            const conf = routes[currentRoute];
+            fileInput.accept = conf.accept;
+            fileInput.value = '';
+            fileInput.click();
+        }
+
+        function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            const conf = routes[currentRoute];
+
+            if (conf.action === 'single') {
+                singleFile = files[0];
+                filesQueue = [files[0]];
+            } else {
+                filesQueue.push(...files);
+            }
+            renderWorkspace();
+        }
+
+        function updateFileList() {
+            const list = document.getElementById('file-list');
+            if(!list) return;
+            list.innerHTML = filesQueue.map((f, i) => `
+                <li class="p-4 flex items-center justify-between hover:bg-slate-50 group border-b border-slate-50 last:border-0">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <span class="material-icons-round text-3xl ${routes[currentRoute].color || 'text-brand'}">description</span>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-slate-700 truncate max-w-[200px]">${f.name}</span>
+                            <span class="text-xs text-slate-400">(${(f.size/1024).toFixed(0)} KB)</span>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${i})" class="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition"><span class="material-icons-round">close</span></button>
+                </li>
+            `).join('');
+        }
+        window.removeFile = i => { filesQueue.splice(i, 1); updateFileList(); };
+
+        // Grid View
+        async function initGridView() {
+            startLoading('PDFを読み込み中...');
+            const grid = document.getElementById('grid-view');
+            const ab = await singleFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(ab).promise;
+            orgPages = []; grid.innerHTML = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 0.2 });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                orgPages.push({ id: i, rot: 0, removed: false });
+                
+                const div = document.createElement('div');
+                div.className = 'bg-white p-2 rounded-lg shadow-sm group relative hover:shadow-md transition';
+                div.dataset.id = i;
+                div.innerHTML = `
+                    <div class="relative bg-slate-100 aspect-[3/4] flex items-center justify-center overflow-hidden rounded">
+                        <img src="${canvas.toDataURL()}" class="w-full h-full object-contain transition-transform duration-300" id="pg-${i}">
+                        <div class="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-1.5 rounded font-bold shadow">${i}</div>
+                        <div class="absolute inset-0 bg-brand/90 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                            ${currentRoute === 'organize' ? `
+                            <button onclick="rotatePage(${i})" class="bg-white text-brand p-2 rounded-full shadow hover:scale-110 transition"><span class="material-icons-round">rotate_right</span></button>
+                            <button onclick="deletePage(${i}, this)" class="bg-white text-red-500 p-2 rounded-full shadow hover:scale-110 transition"><span class="material-icons-round">delete</span></button>
+                            ` : ''}
+                            ${currentRoute === 'edit_redact' ? '<span class="text-white font-bold text-xs">クリックで墨消し</span>' : ''}
+                        </div>
+                    </div>
+                `;
+                
+                if(currentRoute === 'edit_redact') {
+                    div.onclick = () => {
+                        div.classList.toggle('ring-4'); div.classList.toggle('ring-black');
+                        div.querySelector('img').classList.toggle('opacity-20');
+                    }
+                }
+                grid.appendChild(div);
+            }
+            if(currentRoute === 'organize') new Sortable(grid, { animation: 150 });
+            stopLoading();
+        }
+
+        window.rotatePage = (id) => {
+            const p = orgPages.find(x => x.id === id); p.rot = (p.rot + 90) % 360;
+            document.getElementById(`pg-${id}`).style.transform = `rotate(${p.rot}deg)`;
+        };
+        window.deletePage = (id, el) => {
+            orgPages.find(x => x.id === id).removed = true;
+            el.closest('div[data-id]').style.display = 'none';
+        };
+
+        // --- Execute ---
+        async function executeAction() {
+            startLoading('処理中...');
+            const { PDFDocument, rgb, degrees } = PDFLib;
+            try {
+                if(currentRoute === 'merge') {
+                    const quality = document.querySelector('input[name="mergeQuality"]:checked').value;
+                    
+                    if (quality === 'none') {
+                        const merged = await PDFDocument.create();
+                        for (const f of filesQueue) {
+                            const src = await PDFDocument.load(await f.arrayBuffer());
+                            const cop = await merged.copyPages(src, src.getPageIndices());
+                            cop.forEach(p => merged.addPage(p));
+                        }
+                        save(await merged.save(), 'merged.pdf');
+                    } else {
+                        // Resample Merge
+                        const merged = await PDFDocument.create();
+                        let scale = quality === 'high' ? 1.0 : 1.5; 
+                        
+                        for (const f of filesQueue) {
+                            const ab = await f.arrayBuffer();
+                            const pdf = await pdfjsLib.getDocument(ab).promise;
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const viewport = page.getViewport({ scale: scale });
+                                const cvs = document.createElement('canvas'); cvs.width = viewport.width; cvs.height = viewport.height;
+                                const ctx = cvs.getContext('2d');
+                                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                                
+                                const img = await merged.embedJpg(cvs.toDataURL('image/jpeg', 0.7));
+                                const p = merged.addPage([img.width, img.height]);
+                                p.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                            }
+                        }
+                        save(await merged.save(), 'merged_compressed.pdf');
+                    }
+                }
+                else if (['split','split_extract'].includes(currentRoute)) {
+                    const src = await PDFDocument.load(await singleFile.arrayBuffer());
+                    const zip = new JSZip();
+                    const cnt = src.getPageCount();
+                    for(let i=0; i<cnt; i++) {
+                        const d = await PDFDocument.create();
+                        const [p] = await d.copyPages(src, [i]); d.addPage(p);
+                        zip.file(`page_${i+1}.pdf`, await d.save());
+                    }
+                    saveBlob(await zip.generateAsync({type:'blob'}), 'split.zip');
+                }
+                else if (currentRoute.includes('organize')) {
+                    const src = await PDFDocument.load(await singleFile.arrayBuffer());
+                    const newDoc = await PDFDocument.create();
+                    const doms = document.getElementById('grid-view').children;
+                    for (const el of doms) {
+                        if (el.style.display === 'none') continue;
+                        const id = parseInt(el.dataset.id);
+                        const pData = orgPages.find(x => x.id === id);
+                        const [p] = await newDoc.copyPages(src, [id-1]);
+                        p.setRotation(degrees(p.getRotation().angle + pData.rot));
+                        newDoc.addPage(p);
+                    }
+                    save(await newDoc.save(), 'organized.pdf');
+                }
+                else if (currentRoute === 'edit_sign') {
+                    const png = signPad.toDataURL();
+                    const src = await PDFDocument.load(await singleFile.arrayBuffer());
+                    const img = await src.embedPng(png);
+                    const pos = document.querySelector('input[name="signPos"]:checked').value;
+                    const pages = src.getPages();
+                    const dims = img.scale(0.5);
+                    const draw = p => p.drawImage(img, { x:50, y:50, width:dims.width, height:dims.height });
+                    if (pos === 'first') draw(pages[0]); else pages.forEach(draw);
+                    save(await src.save(), 'signed.pdf');
+                }
+                else if (['convert_img2pdf','scan'].includes(currentRoute)) {
+                    const doc = await PDFDocument.create();
+                    for(const f of filesQueue) {
+                        const img = f.name.match(/\.png$/i) ? await doc.embedPng(await f.arrayBuffer()) : await doc.embedJpg(await f.arrayBuffer());
+                        const p = doc.addPage([img.width, img.height]);
+                        p.drawImage(img, { x:0, y:0, width:img.width, height:img.height });
+                    }
+                    save(await doc.save(), 'images.pdf');
+                }
+                else if (['pdf_to_word','pdf_to_excel','pdf_to_ppt'].includes(currentRoute)) {
+                    const target = document.querySelector('input[name="targetApp"]:checked').value;
+                    let filename = "converted";
+                    if(target === 'google') filename += "_for_google_drive";
+                    
+                    if (currentRoute === 'pdf_to_word') await processPdfToWord(singleFile, filename);
+                    else if (currentRoute === 'pdf_to_excel') await processPdfToExcel(singleFile, filename);
+                    else if (currentRoute === 'pdf_to_ppt') await processPdfToPpt(singleFile, filename);
+                    
+                    if(target === 'google') {
+                        setTimeout(() => alert('Googleドライブ用形式で保存しました。\nドライブにアップロードして編集してください。'), 500);
+                    }
+                }
+                else {
+                    alert("デモ: この機能は現在、簡易的な実装です。");
+                }
+            } catch(e) {
+                console.error(e);
+                alert("エラー: " + e.message);
+            } finally {
+                stopLoading();
+            }
+        }
+
+        // --- Conversion Helpers ---
+        async function processPdfToWord(file, name) {
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            const doc = new docx.Document({ sections: [] });
+            const children = [];
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const txt = await page.getTextContent();
+                txt.items.sort((a,b) => b.transform[5] - a.transform[5]); 
+                txt.items.forEach(t => {
+                    if(t.str.trim()) children.push(new docx.Paragraph({ children: [new docx.TextRun(t.str)] }));
+                });
+                children.push(new docx.Paragraph({ text: "--- Page Break ---" }));
+            }
+            doc.addSection({ children });
+            saveBlob(await docx.Packer.toBlob(doc), name + ".docx");
+        }
+
+        async function processPdfToExcel(file, name) {
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            const wb = XLSX.utils.book_new();
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const txt = await page.getTextContent();
+                const rows = {};
+                txt.items.forEach(t => {
+                    const y = Math.round(t.transform[5]);
+                    if(!rows[y]) rows[y] = [];
+                    rows[y].push({ x: t.transform[4], str: t.str });
+                });
+                const sheetData = Object.keys(rows).sort((a,b)=>b-a).map(y => rows[y].sort((a,b)=>a.x-b.x).map(i=>i.str));
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), `Page ${i}`);
+            }
+            XLSX.writeFile(wb, name + ".xlsx");
+        }
+
+        async function processPdfToPpt(file, name) {
+            const pptx = new PptxGenJS();
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const cvs = document.createElement('canvas'); cvs.width=viewport.width; cvs.height=viewport.height;
+                await page.render({ canvasContext: cvs.getContext('2d'), viewport }).promise;
+                const slide = pptx.addSlide();
+                slide.addImage({ data: cvs.toDataURL('image/jpeg'), x:0, y:0, w:'100%', h:'100%' });
+            }
+            pptx.writeFile({ fileName: name + ".pptx" });
+        }
+
+        // Utils
+        function save(data, name) { saveBlob(new Blob([data], {type:'application/pdf'}), name); }
+        function saveBlob(blob, name) {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+        }
+        function startLoading(t) { loaderText.innerText=t; loader.classList.remove('hidden'); }
+        function stopLoading() { loader.classList.add('hidden'); }
+    </script>
+</body>
+</html>
